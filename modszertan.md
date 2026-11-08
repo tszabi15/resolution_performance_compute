@@ -1,32 +1,49 @@
-Kutatási Módszertan és Alkalmazott eszközök
-Feladat: Képfelbontás, pontosság és számítási költség vizsgálata MedMNIST adatokon (28, 64, 128, 224 pixel).
+# Kutatási Módszertan és Alkalmazott eszközök
 
-1. Modell: ResNet-18
-Miért ResNet-18?
-Ez a hivatalos MedMNIST baseline-modell, így összehasonlíthatók a mért eredmények.
-Könnyű és gyors: 36 kísérlet (3 adat × 4 méret × 3 seed) Colabban is lefut vele pár óra alatt.
-A belső szerkezete rögzített marad minden felbontáson, így tisztán a képméret hatását mérjük.
-Input réteg (stem) szabály:
-28×28-nál a kezdő konvolúciót kisméretűre ( 3×3 , stride=1) állítjuk, max-pooling nélkül, hogy ne veszítsen azonnal információt.
-A többi méretnél a standard beállítást használjuk.
-2. Tervezett Adathalmazok
+**Feladat:** Képfelbontás, pontosság és számítási költség vizsgálata MedMNIST adatokon (28, 64, 128, 224 pixel).
+
+---
+
+## 1. Modell: ResNet-18
+
+* **Miért ResNet-18?**
+  * Ez a hivatalos MedMNIST baseline-modell, így összehasonlíthatók a mért eredmények.
+  * Könnyű és gyors: 36 kísérlet (3 adat × 4 méret × 3 seed) Colabban is lefut vele pár óra alatt.
+  * A belső szerkezete rögzített marad minden felbontáson, így tisztán a képméret hatását mérjük.
+* **Input réteg (stem) szabály:**
+  * 28×28-nál a kezdő konvolúciót kisméretűre ($3\times3$, stride=1) állítjuk, max-pooling nélkül, hogy ne veszítsen azonnal információt.
+  * A többi méretnél a standard beállítást használjuk.
+
+---
+
+## 2. Tervezett Adathalmazok
+
 A hatalmas méretű adatok helyett 3 kisebb, de valamennyire mégis eltérő méretü és eltérő jellegű adathalmazt használunk, hogy a tanitás ne tartson 20 órán át:
 
-Adathalmaz	Terület / Típus	Csatorna	Képek száma	Miért választottuk?
-PneumoniaMNIST	Tüdőröntgen (bináris)	1 (szürke)	~5 800	Nagy anatómiai struktúrák, szürkeárnyalatos
-DermaMNIST	Bőrelváltozás (7 osztály)	3 (RGB)	~10 000	Közepes méret, színes kép
-BloodMNIST	Vérsejtek (8 osztály)	3 (RGB)	~17 000	Finom mikroszkopikus részletek
-3D adatok: Kihagyva, mert a köbös számítási igény nem tudjuk biztositani.
+| Adathalmaz | Terület / Típus | Csatorna | Képek száma | Miért választottuk? |
+| :--- | :--- | :--- | :--- | :--- |
+| **PneumoniaMNIST** | Tüdőröntgen (bináris) | 1 (szürke) | ~5 800 | Nagy anatómiai struktúrák, szürkeárnyalatos |
+| **DermaMNIST** | Bőrelváltozás (7 osztály) | 3 (RGB) | ~10 000 | Közepes méret, színes kép |
+| **BloodMNIST** | Vérsejtek (8 osztály) | 3 (RGB) | ~17 000 | Finom mikroszkopikus részletek |
 
-3. Szoftverek és Eszközök
-PyTorch (torch, torchvision): Fő keretrendszer. A hivatalos medmnist Python API natív torch Dataset objektumokat ad vissza.
-medmnist: Automatikus letöltés a hivatalos forrásból, api-n keresztül (Zenodo) a 4 felbontásban, fix felosztással.
-fvcore: Elméleti számítási igény (FLOPs / MACs) pontos mérése.
-scikit-learn: Hivatalos AUC és ACC számítás.
-pandas: Mérési eredmények mentése táblázatos formában (CSV).
-4. Konfiguráció: JSON
-Minta beállítás (config.json):
+ **3D adatok:** Kihagyva, mert a köbös számítási igény nem tudjuk biztositani.
 
+---
+
+## 3. Szoftverek és Eszközök
+
+* **PyTorch (`torch`, `torchvision`):** Fő keretrendszer. A hivatalos medmnist Python API natív torch Dataset objektumokat ad vissza.
+* **`medmnist`:** Automatikus letöltés a hivatalos forrásból, api-n keresztül (Zenodo) a 4 felbontásban, fix felosztással.
+* **`fvcore`:** Elméleti számítási igény (FLOPs / MACs) pontos mérése.
+* **`scikit-learn`:** Hivatalos AUC és ACC számítás.
+* **`pandas`:** Mérési eredmények mentése táblázatos formában (CSV).
+
+---
+
+## 4. Konfiguráció: JSON
+
+**Minta beállítás (`config.json`):**
+```json
 {
   "dataset": "pneumoniamnist",
   "resolutions": [28, 64, 128, 224],
@@ -37,8 +54,9 @@ Minta beállítás (config.json):
   "amp": true,
   "patience": 5
 }
-Kimeneti nyers eredmény minta:
-
+```
+**Kimeneti nyers eredmény minta:**
+```json
 {
   "config": {
     "dataset": "pneumoniamnist",
@@ -67,12 +85,16 @@ Kimeneti nyers eredmény minta:
     "total_train_time_s": 84.3
   }
 }
+```
 A használt erőforrásokat, majd valahova beillesztjük.
 
-5. Mérések és Elemzés
-Hardver és idő:
-FLOPs: Kiszámolva fvcore-ral.
-Latency (idő/kép): 50 futtatás bemelegítés (warm-up) után mérve, medián értékkel.
-Csúcs GPU-memória: torch.cuda.max_memory_allocated().
-Knee-point (könyökpont):
-Az a legkisebb felbontás, ahol a felbontás növelése már nem hoz legalább +0,5% AUC javulást.
+---
+
+## 5. Mérések és Elemzés
+
+1. **Hardver és idő:**
+   * **FLOPs:** Kiszámolva `fvcore`-ral.
+   * **Latency (idő/kép):** 50 futtatás bemelegítés (warm-up) után mérve, medián értékkel.
+   * **Csúcs GPU-memória:** `torch.cuda.max_memory_allocated()`.
+2. **Knee-point (könyökpont):**
+   * Az a legkisebb felbontás, ahol a felbontás növelése már nem hoz legalább **+0,5% AUC** javulást.
